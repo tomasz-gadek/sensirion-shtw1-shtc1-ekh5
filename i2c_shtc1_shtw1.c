@@ -29,6 +29,7 @@
 // I2C Transmission parameters taken from SHTW1 datasheet
 #define I2C_WRITE_COMMAND 0xE0 //write command, sensor I2C address followed by a write bit 
 #define I2C_READ_COMMAND 0xE1 //read command, sensor I2C address followeb by a read bit
+#define I2C_RETRY_LIMIT 5 //number of retries to communicate with I2C device
 #define CRC_POLYNOMIAL 0x131 //CRC polynomial
 
 // Sensor Commands taken from SHTW1 datasheet
@@ -358,6 +359,7 @@ int main(int argc, char* argv[])
 {	
 	int i = UPDATE_ITERATION_NUMBER;
 	float temperature, humidity, dew_point = 0.0;
+	uint8_t retry_counter = 0;
 	
 	signal(SIGINT, InterruptHandler);
 
@@ -411,9 +413,21 @@ int main(int argc, char* argv[])
 					UpdatePlots(tm, gnuplot_temperature, gnuplot_humidity, gnuplot_dew_point);
 				}
 				i--;
+				retry_counter = 0;
 				usleep(MEASUREMENT_DELAY_MS * 1000);
 				
 			}
+			
+			else
+			{
+				retry_counter++;
+				if (retry_counter >= I2C_RETRY_LIMIT)
+				{
+					printf("Terminating program after %u failed trials of I2C communication\n", retry_counter);	
+					return -1;
+				}
+			}
+			
 	
 		}
 	
